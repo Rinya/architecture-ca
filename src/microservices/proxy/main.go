@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"io"
 	"log"
 	"math/rand"
 	"net/http"
@@ -71,6 +73,54 @@ func init() {
 	eventsMigrationPercent = 0 // Default to 0
 }
 
+// loggingMiddleware логирует входящие HTTP-запросы
+func loggingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+
+		// Логируем базовую информацию о запросе
+		log.Printf("Incoming request: %s %s from %s", r.Method, r.URL.String(), r.RemoteAddr)
+
+		// Логируем ключевые заголовки (избегайте чувствительных, как Authorization)
+		log.Printf("Headers: User-Agent=%s, Content-Type=%s, Content-Length=%s",
+			r.Header.Get("User-Agent"), r.Header.Get("Content-Type"), r.Header.Get("Content-Length"))
+
+		// Опционально логируем тело запроса (только для отладки, с осторожностью - не логируйте чувствительные данные!)
+		// Для production отключите это, чтобы избежать утечек.
+		if r.Body != nil && r.Header.Get("Content-Type") != "" {
+			bodyBytes, err := io.ReadAll(r.Body)
+			if err == nil {
+				log.Printf("Request body: %s", string(bodyBytes))
+				// Восстанавливаем тело для дальнейшей обработки
+				r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+			} else {
+				log.Printf("Error reading request body: %v", err)
+			}
+		}
+
+		// Оборачиваем ResponseWriter для захвата статуса и размера ответа (опционально)
+		wrappedWriter := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
+
+		// Вызываем следующий handler
+		next.ServeHTTP(wrappedWriter, r)
+
+		// Логируем время выполнения и статус ответа
+		duration := time.Since(start)
+		log.Printf("Request completed: status=%d, duration=%v", wrappedWriter.statusCode, duration)
+	})
+}
+
+// responseWriter оборачивает http.ResponseWriter для захвата статуса
+type responseWriter struct {
+	http.ResponseWriter
+	statusCode int
+}
+
+func (rw *responseWriter) WriteHeader(code int) {
+	rw.statusCode = code
+	rw.ResponseWriter.WriteHeader(code)
+}
+
 func main() {
 	// Create reverse proxies
 	monolithProxy := httputil.NewSingleHostReverseProxy(monolithURL)
@@ -78,7 +128,8 @@ func main() {
 	eventsProxy := httputil.NewSingleHostReverseProxy(eventsServiceURL)
 
 	// Handler to route requests
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case strings.HasPrefix(r.URL.Path, "/api/movies"):
 			routeMovies(w, r, monolithProxy, moviesProxy)
@@ -93,12 +144,15 @@ func main() {
 		}
 	})
 
+	// Применяем middleware ко всем маршрутам
+	loggedMux := loggingMiddleware(mux)
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8000"
 	}
 	log.Printf("API Gateway starting on port %s", port)
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+	log.Fatal(http.ListenAndServe(":"+port, loggedMux))
 }
 
 func routeMovies(w http.ResponseWriter, r *http.Request, monolithProxy, moviesProxy *httputil.ReverseProxy) {
