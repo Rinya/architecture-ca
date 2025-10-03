@@ -61,6 +61,7 @@
 Приложите скриншот тестов и скриншот состояния топиков Kafka из UI http://localhost:8090 
 
 ![Тесты](images/kafka/tests.png)
+
 [Тесты](images/kafka/tests.png)
 
 ![Топики](images/kafka/topics.png)
