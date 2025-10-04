@@ -5,7 +5,8 @@
 1. Спроектируйте to be архитектуру КиноБездны, разделив всю систему на отдельные домены и организовав интеграционное взаимодействие и единую точку вызова сервисов.
 Результат представьте в виде контейнерной диаграммы в нотации С4.
 Добавьте ссылку на файл в этот шаблон
-[ссылка на файл](ссылка)
+![TO BE архитектура](diagrams/container/CA_container.png)
+[TO BE архитектура](diagrams/container/CA_container.puml)
 
 # Задание 2
 
@@ -58,6 +59,13 @@
 
 Необходимые тесты для проверки этого API вызываются при запуске npm run test:local из папки tests/postman 
 Приложите скриншот тестов и скриншот состояния топиков Kafka из UI http://localhost:8090 
+
+![Тесты](images/kafka/tests.png)
+
+[Тесты](images/kafka/tests.png)
+
+![Топики](images/kafka/topics.png)
+[Топики](images/kafka/topics.png)
 
 # Задание 3
 
@@ -251,6 +259,16 @@ cat .docker/config.json | base64
   ```bash
   minikube addons enable ingress
   ```
+
+  - Если используется Docker Desktop, Нужно вручную создать ingress controller
+  ```
+  kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.13.3/deploy/static/provider/cloud/deploy.yaml
+  ```
+  и прокинуть controller через port-forward
+  ```
+  kubectl port-forward svc/ingress-nginx-controller 8080:80 -n ingress-nginx
+  ```
+
   ```bash
   kubectl apply -f src/kubernetes/ingress.yaml
   ```
@@ -274,6 +292,13 @@ cat .docker/config.json | base64
 
 #### Шаг 3
 Добавьте сюда скриншота вывода при вызове https://cinemaabyss.example.com/api/movies и  скриншот вывода event-service после вызова тестов.
+
+![Вызов /api/movies](images/kafka/k8s-test.png)
+
+[Вызов /api/movies](images/kafka/k8s-test.png)
+
+![Логи event-service](images/kafka/events-service.png)
+[Логи event-service](images/kafka/events-service.png)
 
 
 # Задание 4
@@ -349,6 +374,13 @@ minikube tunnel
 Потом вызовите 
 https://cinemaabyss.example.com/api/movies
 и приложите скриншот развертывания helm и вывода https://cinemaabyss.example.com/api/movies
+
+![Развертывание helm](images/kafka/helm.png)
+
+[Развертывание helm](images/kafka/helm.png)
+
+![Запрос на /api/movies](images/kafka/helm-api-movies.png)
+[Запрос на /api/movies](images/kafka/helm-api-movies.png)
 
 ## Удаляем все
 
