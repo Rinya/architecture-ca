@@ -293,12 +293,12 @@ cat .docker/config.json | base64
 #### Шаг 3
 Добавьте сюда скриншота вывода при вызове https://cinemaabyss.example.com/api/movies и  скриншот вывода event-service после вызова тестов.
 
-![Тесты](images/kafka/k8s-test.png)
+![Вызов /api/movies](images/kafka/k8s-test.png)
 
-[Тесты](images/kafka/k8s-test.png)
+[Вызов /api/movies](images/kafka/k8s-test.png)
 
-![Топики](images/kafka/events-service.png)
-[Топики](images/kafka/events-service.png)
+![Логи event-service](images/kafka/events-service.png)
+[Логи event-service](images/kafka/events-service.png)
 
 
 # Задание 4
@@ -374,6 +374,13 @@ minikube tunnel
 Потом вызовите 
 https://cinemaabyss.example.com/api/movies
 и приложите скриншот развертывания helm и вывода https://cinemaabyss.example.com/api/movies
+
+![Развертывание helm](images/kafka/helm.png)
+
+[Развертывание helm](images/kafka/helm.png)
+
+![Запрос на /api/movies](images/kafka/helm-api-movies.png)
+[Запрос на /api/movies](images/kafka/helm-api-movies.png)
 
 ## Удаляем все
 
