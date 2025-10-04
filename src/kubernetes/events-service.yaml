@@ -27,7 +27,7 @@ spec:
         ports:
         - containerPort: 8082
         env:
-        - name: KAFKA_BROKER
+        - name: KAFKA_BROKERS
           value: "kafka:9092"  # Адрес Kafka в кластере (предполагается, что Kafka-сервис называется 'kafka')
         envFrom:
         - configMapRef:

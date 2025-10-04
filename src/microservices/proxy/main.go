@@ -16,45 +16,47 @@ import (
 
 // Configuration
 var (
-	monolithURL           *url.URL
-	moviesServiceURL      *url.URL
-	eventsServiceURL      *url.URL
-	gradualMigration      bool
+	monolithURL            *url.URL
+	moviesServiceURL       *url.URL
+	eventsServiceURL       *url.URL
+	gradualMigration       bool
 	moviesMigrationPercent int
 	eventsMigrationPercent int // Assuming similar for events, but not in yaml yet
 )
+
+// parseURLWithFallback парсит URL из переменной окружения с fallback'ом.
+// Если env-переменная пустая или её Host пустой, использует fallback.
+// В случае ошибки парсинга вызывает log.Fatal с соответствующим сообщением.
+func parseURLWithFallback(envKey, fallback string) *url.URL {
+	value := os.Getenv(envKey)
+	if value == "" {
+		value = fallback
+	}
+	u, err := url.Parse(value)
+	if err != nil {
+		log.Fatal("Invalid " + envKey)
+	}
+	if u.Host == "" {
+		u, _ = url.Parse(fallback) // Игнорируем ошибку fallback, как в оригинале
+	}
+	log.Println("Host for %s is %s", envKey, u.Host)
+
+	return u
+}
 
 func init() {
 	// Seed random generator
 	rand.Seed(time.Now().UnixNano())
 
-	// Parse URLs
-	var err error
-	monolithURL, err = url.Parse(os.Getenv("MONOLITH_URL"))
-	if err != nil {
-		log.Fatal("Invalid MONOLITH_URL")
-	}
-	if monolithURL.Host == "" {
-		monolithURL, _ = url.Parse("http://localhost:8080") // Fallback
-	}
+	// Seed random generator
+	rand.Seed(time.Now().UnixNano())
 
-	moviesServiceURL, err = url.Parse(os.Getenv("MOVIES_SERVICE_URL"))
-	if err != nil {
-		log.Fatal("Invalid MOVIES_SERVICE_URL")
-	}
-	if moviesServiceURL.Host == "" {
-		moviesServiceURL, _ = url.Parse("http://localhost:8081") // Fallback
-	}
+	// Parse URLs with fallback (теперь без обработки ошибок в caller)
+	monolithURL = parseURLWithFallback("MONOLITH_URL", "http://localhost:8080")
+	moviesServiceURL = parseURLWithFallback("MOVIES_SERVICE_URL", "http://localhost:8081")
+	eventsServiceURL = parseURLWithFallback("EVENTS_SERVICE_URL", "http://localhost:8082")
 
-	eventsServiceURL, err = url.Parse(os.Getenv("EVENTS_SERVICE_URL"))
-	if err != nil {
-		log.Fatal("Invalid EVENTS_SERVICE_URL")
-	}
-	if eventsServiceURL.Host == "" {
-		eventsServiceURL, _ = url.Parse("http://localhost:8082") // Fallback
-	}
-
-	// Parse migration settings
+	// Parse migration settings (остальной код без изменений)
 	gradualMigration = os.Getenv("GRADUAL_MIGRATION") == "true"
 	if gradualMigration {
 		log.Println("Gradual migration enabled")
@@ -123,9 +125,9 @@ func (rw *responseWriter) WriteHeader(code int) {
 
 func main() {
 	// Create reverse proxies
-	monolithProxy := httputil.NewSingleHostReverseProxy(monolithURL)
-	moviesProxy := httputil.NewSingleHostReverseProxy(moviesServiceURL)
-	eventsProxy := httputil.NewSingleHostReverseProxy(eventsServiceURL)
+	monolithProxy := httputil.NewSingleHostReverseProxy(parseURLWithFallback("MONOLITH_URL", "http://localhost:8080"))
+	moviesProxy := httputil.NewSingleHostReverseProxy(parseURLWithFallback("MOVIES_SERVICE_URL", "http://localhost:8081"))
+	eventsProxy := httputil.NewSingleHostReverseProxy(parseURLWithFallback("EVENTS_SERVICE_URL", "http://localhost:8082"))
 
 	// Handler to route requests
 	mux := http.NewServeMux()
